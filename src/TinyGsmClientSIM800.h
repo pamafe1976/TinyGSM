@@ -599,6 +599,50 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
     return waitResponse(60000L) == 1;
   }
 
+
+
+  int8_t countSMS(void){
+    sendAT(GF("+CMGF=1"));
+    if(waitResponse() != 1) return false;
+    sendAT(GF("+CPMS?"));
+    waitResponse(10000L,GF("+CPMS:"));    
+
+    streamSkipUntil(',');
+    uint8_t count = stream.readStringUntil(',').toInt();
+    waitResponse();
+
+    return count;
+  }
+  bool deleteSMS(){
+    sendAT(GF("+CMGF=1"));
+    if(waitResponse() != 1) return false;
+    sendAT(GF("+CMGDA=\"DEL ALL\""));
+    if(waitResponse() != 1) return false;
+
+    return true;
+  }
+  bool deleteSMS(uint8_t i){
+    sendAT(GF("+CMGF=1"));
+    if(waitResponse() != 1) return false;
+    sendAT(GF("+CMGD="), i);
+    if(waitResponse() != 1) return false;
+
+    return true;
+  }
+
+  bool readSMS(uint8_t i, String& msg){
+    sendAT(GF("+CMGF=1"));
+    if(waitResponse() != 1) return false;
+    sendAT(GF("+CMGR="), i);
+    int res = waitResponse(10000L,GF("+CMGR:"),GF("OK"));
+    if (res==1) {
+      DBG ("SMSRES: ",res);
+      streamSkipUntil('\n');
+      msg = stream.readStringUntil('\n');
+      return true;
+    }
+    return false;
+  }
   bool sendSMS_UTF16(const String& number, const void* text, size_t len) {
     sendAT(GF("+CMGF=1"));
     waitResponse();
