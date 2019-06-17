@@ -19,8 +19,8 @@
 
 #ifndef client_h
 #define client_h
-#include "Print.h"
-#include "Stream.h"
+//#include "Print.h"
+//#include "Stream.h"
 #include "ArduinoCompat/IPAddress.h"
 
 class Client : public Stream {

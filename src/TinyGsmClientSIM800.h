@@ -94,16 +94,23 @@ TINY_GSM_CLIENT_CONNECT_OVERLOADS()
     // closes until all data is read from the buffer.
     // Doing it this way allows the external mcu to find and get all of the data
     // that it wants from the socket even if it was closed externally.
+//    DBG("Ini Stop");
     rx.clear();
     at->maintain();
     while (sock_available > 0) {
-      at->modemRead(TinyGsmMin((uint16_t)rx.free(), sock_available), mux);
+      int res = at->modemRead(TinyGsmMin((uint16_t)rx.free(), sock_available), mux);
+      if (res !=1) {
+          at->sendAT(GF("+CIPRXGET=0"));
+          at->waitResponse();
+          break;
+      }
       rx.clear();
       at->maintain();
     }
     at->sendAT(GF("+CIPCLOSE="), mux, GF(",1"));  // Quick close
     sock_connected = false;
     at->waitResponse();
+//    DBG("End Stop");
   }
 
 TINY_GSM_CLIENT_WRITE()
@@ -168,7 +175,7 @@ public:
   }
 
   bool init(const char* pin = NULL) {
-    DBG(GF("### TinyGSM Version:"), TINYGSM_VERSION);
+    DBG(GF("### TinyGSM Fork Version:"), TINYGSM_VERSION);
     if (!testAT()) {
       return false;
     }
@@ -378,8 +385,8 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
     waitResponse();
 
     // Activate the PDP context
-    sendAT(GF("+CGACT=1,1"));
-    waitResponse(60000L);
+    //sendAT(GF("+CGACT=1,1"));
+    //waitResponse(60000L);
 
     // Open the definied GPRS bearer context
     sendAT(GF("+SAPBR=1,1"));
@@ -575,13 +582,17 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
   bool sendSMS(const String& number, const String& text) {
     sendAT(GF("+CMGF=1"));
     waitResponse();
+    delay(4000);
     //Set GSM 7 bit default alphabet (3GPP TS 23.038)
     sendAT(GF("+CSCS=\"GSM\""));
     waitResponse();
     sendAT(GF("+CMGS=\""), number, GF("\""));
-    if (waitResponse(GF(">")) != 1) {
+    int r = waitResponse(GF(">"),GF("OK"));
+    if (r == 2)
+      r = waitResponse(GF(">"));
+    if (r != 1)
       return false;
-    }
+    delay(100);
     stream.print(text);
     stream.write((char)0x1A);
     stream.flush();
@@ -794,7 +805,7 @@ protected:
 #endif
       sockets[mux]->rx.put(c);
     }
-    DBG("### READ:", len_requested, "from", mux);
+    //DBG("### READ:", len_requested, "from", mux);
     // sockets[mux]->sock_available = modemGetAvailable(mux);
     sockets[mux]->sock_available = len_confirmed;
     waitResponse();
@@ -810,7 +821,7 @@ protected:
       result = stream.readStringUntil('\n').toInt();
       waitResponse();
     }
-    DBG("### Available:", result, "on", mux);
+    //DBG("### Available:", result, "on", mux);
     if (!result) {
       sockets[mux]->sock_connected = modemGetConnected(mux);
     }
@@ -839,12 +850,6 @@ TINY_GSM_MODEM_STREAM_UTILITIES()
                        GsmConstStr r1=GFP(GSM_OK), GsmConstStr r2=GFP(GSM_ERROR),
                        GsmConstStr r3=NULL, GsmConstStr r4=NULL, GsmConstStr r5=NULL)
   {
-    /*String r1s(r1); r1s.trim();
-    String r2s(r2); r2s.trim();
-    String r3s(r3); r3s.trim();
-    String r4s(r4); r4s.trim();
-    String r5s(r5); r5s.trim();
-    DBG("### ..:", r1s, ",", r2s, ",", r3s, ",", r4s, ",", r5s);*/
     data.reserve(64);
     int index = 0;
     unsigned long startMillis = millis();
@@ -877,7 +882,7 @@ TINY_GSM_MODEM_STREAM_UTILITIES()
               sockets[mux]->got_data = true;
             }
             data = "";
-            DBG("### Got Data:", mux);
+            //DBG("### Got Data:", mux);
           } else {
             data += mode;
           }
@@ -889,7 +894,7 @@ TINY_GSM_MODEM_STREAM_UTILITIES()
             sockets[mux]->sock_available = len;
           }
           data = "";
-          DBG("### Got Data:", len, "on", mux);
+          //DBG("### Got Data:", len, "on", mux);
         } else if (data.endsWith(GF("CLOSED" GSM_NL))) {
           int nl = data.lastIndexOf(GSM_NL, data.length()-8);
           int coma = data.indexOf(',', nl+2);
@@ -898,7 +903,7 @@ TINY_GSM_MODEM_STREAM_UTILITIES()
             sockets[mux]->sock_connected = false;
           }
           data = "";
-          DBG("### Closed: ", mux);
+          //DBG("### Closed: ", mux);
         }
       }
     } while (millis() - startMillis < timeout_ms);
