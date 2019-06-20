@@ -77,7 +77,7 @@ public:
   }
 
 public:
-  virtual int connect(const char *host, uint16_t port, int timeout_s) {
+  virtual int connect(String host, uint16_t port, int timeout_s) {
     stop();
     TINY_GSM_YIELD();
     rx.clear();
@@ -360,7 +360,7 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
   /*
    * GPRS functions
    */
-
+  
   bool gprsConnect(const char* apn, const char* user = NULL, const char* pwd = NULL) {
     gprsDisconnect();
 
@@ -587,11 +587,12 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
     sendAT(GF("+CSCS=\"GSM\""));
     waitResponse();
     sendAT(GF("+CMGS=\""), number, GF("\""));
-    int r = waitResponse(GF(">"),GF("OK"));
-    if (r == 2)
-      r = waitResponse(GF(">"));
-    if (r != 1)
-      return false;
+//    int r = waitResponse(GF(">"),GF("OK"));
+//    if (r == 2)
+//      r = waitResponse(GF(">"));
+//    if (r != 1)
+//      return false;
+    waitResponse(GF(">"));
     delay(100);
     stream.print(text);
     stream.write((char)0x1A);
@@ -636,7 +637,6 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
     sendAT(GF("+CMGR="), i);
     int res = waitResponse(10000L,GF("+CMGR:"),GF("OK"));
     if (res==1) {
-      DBG ("SMSRES: ",res);
       streamSkipUntil('\n');
       msg = stream.readStringUntil('\n');
       return true;
@@ -710,6 +710,7 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
         res = stream.readStringUntil(',');
       break;
     }
+    waitResponse();
     return res;
   }
 
@@ -778,7 +779,7 @@ TINY_GSM_MODEM_WAIT_FOR_NETWORK()
 
 protected:
 
-  bool modemConnect(const char* host, uint16_t port, uint8_t mux,
+  bool modemConnect(String host, uint16_t port, uint8_t mux,
                     bool ssl = false, int timeout_s = 75)
  {
     int rsp;

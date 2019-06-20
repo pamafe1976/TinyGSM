@@ -502,6 +502,7 @@ String TinyGsmDecodeHex16bit(String &instr) {
   }
 
 
+
 // Gets the modem's registration status via CREG/CGREG/CEREG
 // CREG = Generic network registration
 // CGREG = GPRS service registration
